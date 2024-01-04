@@ -1,0 +1,8 @@
+ROOK = '♖'
+KNIGHT = '♘'
+BISHOP = '♗'
+QUEEN = '♕'
+KING = '♔'
+PAWN = '♙'
+WHITE = 'W'
+BLACK = 'B'
