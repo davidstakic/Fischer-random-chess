@@ -1,5 +1,6 @@
 import random
 from constants import *
+from copy import deepcopy
 
 class RandomChess:
     def __init__(self, population_size, generations, mutation_rate):
@@ -7,94 +8,93 @@ class RandomChess:
         self.generations = generations
         self.mutation_rate = mutation_rate
         self.optimality_criterion = [ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK]
-        self.colors = [WHITE, BLACK]
+        self.population = []
 
     def generate_individual(self):
-        """
-        Generiše jednog pojedinca, tj. nasumičnu šahovsku tablu.
-        """
-        chess_board = ['' for _ in range(8)]
+        individual = deepcopy(self.optimality_criterion)
+        random.shuffle(individual)
+        return individual
+    
+    def generate_population(self):
+        self.population = [self.generate_individual() for _ in range(self.population_size)]
+    
+    def evaluate(self, individual): # OGRANICENJA
+        # kralj ne sme biti na a i h
 
-        for i, piece in enumerate(self.optimality_criterion):
-            chess_board[i] = piece
+         # Check if any piece is missing
+        piece_counts = {ROOK: 0, KNIGHT: 0, BISHOP: 0, QUEEN: 0, KING: 0}
+        for piece in individual:
+            piece_counts[piece] += 1
 
-        king_col = random.choice(range(1, 7))
-        chess_board[king_col] = KING
+        correct_counts = {ROOK: 2, KNIGHT: 2, BISHOP: 2, QUEEN: 1, KING: 1}
+        if any(piece_counts[piece] != correct_counts[piece] for piece in piece_counts):
+            return float('-inf')
 
-        bishop_col = random.choice(range(0, 8, 2))
-        chess_board[bishop_col] = BISHOP
+        if individual.index(KING) == 0 or individual.index(KING) == 7:
+            return float('-inf')
 
-        king_col = random.choice([col for col in range(8) if col not in [0, 7]])
-        chess_board[king_col] = KING
+        # kralj mora biti izmedju topova
+        king_position = individual.index(KING)
+        rook_positions = [individual.index(ROOK)]
+        rook_positions.append(individual.index(ROOK, rook_positions[0] + 1))
+        rook_positions.sort()
+        if not rook_positions[0] < king_position < rook_positions[1]:
+            return float('-inf')
 
-        return chess_board
+        # lovci moraju biti na poljima razlicitih boja
+        bishop_positions = [individual.index(BISHOP)]
+        bishop_positions.append(individual.index(BISHOP, bishop_positions[0] + 1))
+        if (bishop_positions[0] % 2 == bishop_positions[1] % 2):
+            return float('-inf')
 
-    def evaluate_fitness(self, chess_board):
-        """
-        Evaluirajte prilagođenost pojedinca na osnovu različitih kriterijuma.
-        """
-        # Primer: Hamming distance između trenutne postavke i standardne šahovske postavke
-        standard_board = [['' for _ in range(8)] for _ in range(8)]
-        for i, piece in enumerate(self.optimality_criterion):
-            standard_board[0][i] = 'W' + piece
-            standard_board[7][i] = 'B' + piece
+        correct_pieces = sum(piece == target for piece, target in zip(individual, self.optimality_criterion))
 
-        return sum(1 for i in range(8) for j in range(8) if chess_board[i][j] != standard_board[i][j])
+        return correct_pieces
+
+    def select_parents(self):
+        # Tournament selection: Randomly select individuals and choose the one with the highest fitness.
+        selected_parents = []
+
+        for _ in range(self.population_size):
+            tournament = random.sample(self.population, 2)
+            winner = max(tournament, key=self.evaluate)
+            selected_parents.append(winner)
+
+        return selected_parents
 
     def crossover(self, parent1, parent2):
-        """
-        Križanje dva roditelja kako bi se stvorilo dete.
-        """
-        crossover_point = random.randint(0, 7)
-        child = [parent1[i][:crossover_point] + parent2[i][crossover_point:] for i in range(8)]
+        # Single-point crossover: Choose a random index and swap the portions of the parents.
+        crossover_point = random.randint(0, len(parent1) - 1)
+        child = parent1[:crossover_point] + parent2[crossover_point:]
         return child
 
     def mutate(self, individual):
-        """
-        Mutacija jedinke kako bi se uvodila raznovrsnost.
-        """
-        for i in range(8):
-            for j in range(8):
-                if random.random() < self.mutation_rate:
-                    # Mutacija: promena vrednosti na slučajnu figuru
-                    individual[i][j] = random.choice(self.colors) + random.choice(self.optimality_criterion)
-        return individual
+        # Randomly mutate positions with a probability defined by mutation_rate.
+        mutated_individual = deepcopy(individual)
 
-    def genetic_algorithm(self):
-        """
-        Genetski algoritam za rešavanje problema Fischerovog nasumičnog šaha.
-        """
-        population = [self.generate_individual() for _ in range(self.population_size)]
+        for i in range(len(mutated_individual)):
+            if random.random() < self.mutation_rate:
+                mutated_individual[i] = self.generate_individual()[i]
 
+        return mutated_individual
+
+    def evolve(self):
         for generation in range(self.generations):
-            # Evaluacija prilagođenosti svake jedinke
-            fitness_scores = [self.evaluate_fitness(individual) for individual in population]
+            parents = self.select_parents()
+            next_population = []
 
-            # Izbor roditelja
-            parents = random.choices(population, weights=[1/score for score in fitness_scores], k=self.population_size)
-
-            # Križanje roditelja
-            offspring = []
+            # Create offspring through crossover and mutation
             for i in range(0, self.population_size, 2):
-                child = self.crossover(parents[i], parents[i + 1])
-                offspring.append(self.mutate(child))
+                parent1 = parents[i]
+                parent2 = parents[i + 1] if i + 1 < len(parents) else parents[0]  # Wrap around for odd population size
+                child = self.crossover(parent1, parent2)
+                child = self.mutate(child)
+                next_population.extend([parent1, parent2, child])
 
-            # Zamena starih jedinki sa decom
-            population = offspring
+            # Replace the old population with the new one
+            self.population = next_population
 
-            # Prikaz najbolje jedinke u svakoj generaciji
-            best_individual = population[fitness_scores.index(min(fitness_scores))]
-            print(f"Generacija {generation + 1}, Najbolja prilagođenost: {self.evaluate_fitness(best_individual)}")
-            self.print_board(best_individual)
-
-    def print_board(self, chess_board):
-        """
-        Prikazuje šahovsku tablu.
-        """
-        for row in chess_board:
-            print(' '.join(piece if piece else '.' for piece in row))
-        print()
-
-# Primer korišćenja genetskog algoritma
-genetic_algorithm = RandomChess(population_size=50, generations=100, mutation_rate=0.1)
-genetic_algorithm.genetic_algorithm()
+            # Optionally, you can keep track of the best individual in each generation
+            best_individual = max(self.population, key=self.evaluate)
+            print(f"Generation {generation + 1}, Best Fitness: {self.evaluate(best_individual)}")
+            return best_individual
