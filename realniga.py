@@ -58,7 +58,7 @@ GA započinjemo kreiranjem skupa jedinki koji se naziva populacijom. Svaka jedin
 """
 
 def generate_inital_chromosomes(length, max, min, pop_size):
-  return [ [random.uniform(min,max) for j in range(length)] for i in range(pop_size)]
+  return [[random.uniform(min,max) for j in range(length)] for i in range(pop_size)]
 
 def population_stats(costs):
   return costs[0], sum(costs)/len(costs)
@@ -86,16 +86,16 @@ def roulette_selection(parents):
   i = 0
   for i in range(0, len(parents), 2):
 
-    weights=[];
+    weights=[]
     for i in range(len(parents)):
         weights.append((len(parents)-i)*random.random()) #za minimum
       #  weights.append((i+1)*random.random()) #za maksimum
     if (weights[0]>=weights[1]):
-        maxInd1=0;
-        maxInd2=1;
+        maxInd1=0
+        maxInd2=1
     else:
-        maxInd1=1;
-        maxInd2=0;
+        maxInd1=1
+        maxInd2=0
     
     for i in range(2,len(parents)):
         if weights[i]>weights[maxInd1]:
@@ -202,7 +202,6 @@ def sphera_function(chromosome):
   tmp1 = math.pow(x, 2)
   tmp2 = math.pow(y, 2)
 
-
   return tmp1 + tmp2
 
 def levy_function(chromosome):
@@ -235,7 +234,7 @@ Z = levy_vectorized(X, Y)
 ax = plt.axes(projection='3d')
 ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
                 cmap='plasma', edgecolor='none')
-ax.set_title('Levijeva funkcija');
+ax.set_title('Levijeva funkcija')
 
 ax.view_init(50, 35)
 

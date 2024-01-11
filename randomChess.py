@@ -1,6 +1,8 @@
 import random
 from constants import *
+from print_board import print_board
 from copy import deepcopy
+import matplotlib.pyplot as plt
 
 class RandomChess:
     def __init__(self, population_size, generations, mutation_rate):
@@ -9,19 +11,19 @@ class RandomChess:
         self.mutation_rate = mutation_rate
         self.optimality_criterion = [ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK]
         self.population = []
+        self.all_evaluations = []
 
     def generate_individual(self):
         individual = deepcopy(self.optimality_criterion)
         random.shuffle(individual)
         return individual
     
+    # generate_inital_chromosomes
     def generate_population(self):
         self.population = [self.generate_individual() for _ in range(self.population_size)]
     
     def evaluate(self, individual): # OGRANICENJA
-        # kralj ne sme biti na a i h
-
-         # Check if any piece is missing
+        # Check if any piece is missing
         piece_counts = {ROOK: 0, KNIGHT: 0, BISHOP: 0, QUEEN: 0, KING: 0}
         for piece in individual:
             piece_counts[piece] += 1
@@ -30,6 +32,7 @@ class RandomChess:
         if any(piece_counts[piece] != correct_counts[piece] for piece in piece_counts):
             return float('-inf')
 
+        # kralj ne sme biti na a i h
         if individual.index(KING) == 0 or individual.index(KING) == 7:
             return float('-inf')
 
@@ -77,6 +80,12 @@ class RandomChess:
                 mutated_individual[i] = self.generate_individual()[i]
 
         return mutated_individual
+    
+    # def elitis(chromosomes_old,chromosomes_new, elitis_rate, population_size):
+ 
+    #     old_ind_size=int(np.round(population_size*elitis_rate))
+    #     return chromosomes_old[:old_ind_size]+chromosomes_new[:(population_size-old_ind_size)]
+
 
     def evolve(self):
         for generation in range(self.generations):
@@ -92,9 +101,30 @@ class RandomChess:
                 next_population.extend([parent1, parent2, child])
 
             # Replace the old population with the new one
-            self.population = next_population
+            self.population = next_population # mozda pomeri dole
+
+            # self.population = elitis(parents, next_population)
 
             # Optionally, you can keep track of the best individual in each generation
             best_individual = max(self.population, key=self.evaluate)
-            print(f"Generation {generation + 1}, Best Fitness: {self.evaluate(best_individual)}")
-            return best_individual
+            evaluate_value = self.evaluate(best_individual)
+            self.all_evaluations.append(evaluate_value)
+
+            if evaluate_value < 0:
+                print(f"\nThere is no individual in generation {generation + 1} that satisfies constraints")
+            else:
+                print(f"\nGeneration {generation + 1}, Best Fitness: {self.evaluate(best_individual)}")
+                print_board(best_individual)
+                print()
+        
+        if evaluate_value < 0:
+            print(f"\nThere is no individual in all generations that satisfies constraints.")
+            return None
+        return best_individual
+    
+    def plot_evaluation_through_generations(self):
+        y_axis = self.all_evaluations
+        plt.plot(y_axis, '-', label='Evaluation')
+        plt.title('Evaluations Through Generations')
+        plt.legend()
+        plt.show()
