@@ -54,6 +54,34 @@ class RandomChess:
         correct_pieces = sum(piece == target for piece, target in zip(individual, self.optimality_criterion))
 
         return correct_pieces
+    
+    def roulette_selection(parents):
+
+        pairs = []
+        i = 0
+        for i in range(0, len(parents), 2):
+
+            weights=[]
+            for i in range(len(parents)):
+                weights.append((len(parents)-i)*random.random()) #za minimum
+            #  weights.append((i+1)*random.random()) #za maksimum
+            if (weights[0]>=weights[1]):
+                maxInd1=0
+                maxInd2=1
+            else:
+                maxInd1=1
+                maxInd2=0
+            
+            for i in range(2,len(parents)):
+                if weights[i]>weights[maxInd1]:
+                    maxInd2=maxInd1
+                    maxInd1=i
+                elif weights[i]>weights[maxInd2]:
+                    maxInd2=1
+            pairs.append([parents[maxInd1], parents[maxInd2]])
+            
+        return pairs
+
 
     def select_parents(self):
         # Tournament selection: Randomly select individuals and choose the one with the highest fitness.
@@ -83,20 +111,23 @@ class RandomChess:
         return mutated_individual
     
     def elitis(self, parents, next_population, elitis_rate = 0.1):
-        # current_best = parents[0]
+        current_best = parents[0]
         old_ind_size = round(self.population_size*elitis_rate)
         parents_sorted = []
         for parent in parents:
             parents_sorted.append([parent, self.evaluate(parent)])
         parents_sorted = sorted(parents_sorted, key=lambda x: x[1], reverse=True)
         parents_sorted = [sublist[0] for sublist in parents_sorted]
-        # if current_best == parents_sorted[0] and self.best_count >= 3:
-        #     self.best_count = 0
-        #     return next_population
-        # self.best_count += 1
+        if current_best == parents_sorted[0]:
+            if self.best_count >= 3:
+                self.best_count = 0
+                return next_population
+            self.best_count += 1
         return parents_sorted[:old_ind_size] + next_population[:(self.population_size-old_ind_size)]
 
     def evolve(self):
+        self.generate_population()
+
         for generation in range(self.generations):
             parents = self.select_parents()
             next_population = []
