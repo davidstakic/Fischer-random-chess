@@ -54,61 +54,52 @@ class RandomChess:
         correct_pieces = sum(piece == target for piece, target in zip(individual, self.optimality_criterion))
 
         return correct_pieces
-    
-    def roulette_selection(parents):
-
-        pairs = []
-        i = 0
-        for i in range(0, len(parents), 2):
-
-            weights=[]
-            for i in range(len(parents)):
-                weights.append((len(parents)-i)*random.random()) #za minimum
-            #  weights.append((i+1)*random.random()) #za maksimum
-            if (weights[0]>=weights[1]):
-                maxInd1=0
-                maxInd2=1
-            else:
-                maxInd1=1
-                maxInd2=0
-            
-            for i in range(2,len(parents)):
-                if weights[i]>weights[maxInd1]:
-                    maxInd2=maxInd1
-                    maxInd1=i
-                elif weights[i]>weights[maxInd2]:
-                    maxInd2=1
-            pairs.append([parents[maxInd1], parents[maxInd2]])
-            
-        return pairs
-
 
     def select_parents(self):
-        # Tournament selection: Randomly select individuals and choose the one with the highest fitness.
+        # Tournament selection: Shuffle the population and iterate through pairs to select parents.
         selected_parents = []
 
-        for _ in range(self.population_size):
-            tournament = random.sample(self.population, 2)
-            winner = max(tournament, key=self.evaluate)
-            selected_parents.append(winner)
+        shuffled_population = random.sample(self.population, len(self.population))
+
+        for i in range(0, len(shuffled_population), 2):
+            parent1 = shuffled_population[i]
+            parent2 = shuffled_population[i + 1] if i + 1 < len(shuffled_population) else shuffled_population[i]
+
+            winner = max([parent1, parent2], key=self.evaluate)
+            selected_parents.extend([winner, winner])
 
         return selected_parents
 
     def crossover(self, parent1, parent2):
-        # Single-point crossover: Choose a random index and swap the portions of the parents.
-        crossover_point = random.randint(0, len(parent1) - 1)
-        child = parent1[:crossover_point] + parent2[crossover_point:]
-        return child
+        # Single-point crossover: Choose two random indices for two crossover points.
+        crossover_point1 = random.randint(0, len(parent1) - 1)
+        crossover_point2 = random.randint(0, len(parent1) - 1)
 
-    def mutate(self, individual):
-        # Randomly mutate positions with a probability defined by mutation_rate.
-        mutated_individual = deepcopy(individual)
+        # Ensure crossover_point2 is different from crossover_point1
+        while crossover_point2 == crossover_point1:
+            crossover_point2 = random.randint(0, len(parent1) - 1)
 
-        for i in range(len(mutated_individual)):
-            if random.random() < self.mutation_rate:
-                mutated_individual[i] = self.generate_individual()[i]
+        # Ensure crossover_point1 is less than crossover_point2
+        if crossover_point1 > crossover_point2:
+            crossover_point1, crossover_point2 = crossover_point2, crossover_point1
 
-        return mutated_individual
+        child1 = parent1[:crossover_point1] + parent2[crossover_point1:crossover_point2] + parent1[crossover_point2:]
+        child2 = parent2[:crossover_point1] + parent1[crossover_point1:crossover_point2] + parent2[crossover_point2:]
+
+        return [child1, child2]
+
+    def mutate(self, children):
+        mutated_children = []
+
+        for child in children:
+            mutated_child = deepcopy(child)
+
+            for i in range(len(mutated_child)):
+                if random.random() < self.mutation_rate:
+                    mutated_child[i] = self.generate_individual()[i]
+            mutated_children.append(mutated_child)
+
+        return mutated_children
     
     def elitis(self, parents, next_population, elitis_rate = 0.1):
         current_best = parents[0]
@@ -135,9 +126,9 @@ class RandomChess:
             for i in range(0, self.population_size, 2):
                 parent1 = parents[i]
                 parent2 = parents[i + 1] if i + 1 < len(parents) else parents[0]  # Wrap around for odd population size
-                child = self.crossover(parent1, parent2)
-                child = self.mutate(child)
-                next_population.extend([child, parent1, parent2])
+                children = self.crossover(parent1, parent2)
+                children = self.mutate(children)
+                next_population.extend([children[0], children[1]])
 
             # Replace the old population with the new one using elitis
             self.population = self.elitis(parents, next_population)

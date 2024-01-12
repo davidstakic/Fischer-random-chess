@@ -49,11 +49,11 @@ def print_board(first_row):
         for j in range(8):
             piece = board[i][j] + ' '
             if (i + j) % 2 == 0:
-                # cell_color = Back.CYAN
-                cell_color = Back.LIGHTYELLOW_EX
+                cell_color = Back.CYAN
+                # cell_color = Back.LIGHTYELLOW_EX
             else:
-                # cell_color = Back.MAGENTA
-                cell_color = Back.LIGHTGREEN_EX
+                cell_color = Back.MAGENTA
+                # cell_color = Back.LIGHTGREEN_EX
 
             if piece != ' ':
                 if i == 0 or i == 1:
