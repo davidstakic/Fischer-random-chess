@@ -10,6 +10,7 @@ class RandomChess:
         self.generations = generations
         self.mutation_rate = mutation_rate
         self.optimality_criterion = [ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK]
+        self.best_count = 0
         self.population = []
         self.all_evaluations = []
 
@@ -81,11 +82,19 @@ class RandomChess:
 
         return mutated_individual
     
-    # def elitis(chromosomes_old,chromosomes_new, elitis_rate, population_size):
- 
-    #     old_ind_size=int(np.round(population_size*elitis_rate))
-    #     return chromosomes_old[:old_ind_size]+chromosomes_new[:(population_size-old_ind_size)]
-
+    def elitis(self, parents, next_population, elitis_rate = 0.1):
+        # current_best = parents[0]
+        old_ind_size = round(self.population_size*elitis_rate)
+        parents_sorted = []
+        for parent in parents:
+            parents_sorted.append([parent, self.evaluate(parent)])
+        parents_sorted = sorted(parents_sorted, key=lambda x: x[1], reverse=True)
+        parents_sorted = [sublist[0] for sublist in parents_sorted]
+        # if current_best == parents_sorted[0] and self.best_count >= 3:
+        #     self.best_count = 0
+        #     return next_population
+        # self.best_count += 1
+        return parents_sorted[:old_ind_size] + next_population[:(self.population_size-old_ind_size)]
 
     def evolve(self):
         for generation in range(self.generations):
@@ -100,10 +109,8 @@ class RandomChess:
                 child = self.mutate(child)
                 next_population.extend([parent1, parent2, child])
 
-            # Replace the old population with the new one
-            self.population = next_population # mozda pomeri dole
-
-            # self.population = elitis(parents, next_population)
+            # Replace the old population with the new one using elitis
+            self.population = self.elitis(parents, next_population)
 
             # Optionally, you can keep track of the best individual in each generation
             best_individual = max(self.population, key=self.evaluate)
