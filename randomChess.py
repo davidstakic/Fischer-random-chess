@@ -118,11 +118,10 @@ class RandomChess:
             parents_sorted.append([parent, self.evaluate(parent)])
         parents_sorted = sorted(parents_sorted, key=lambda x: x[1], reverse=True)
         parents_sorted = [sublist[0] for sublist in parents_sorted]
-        if current_best == parents_sorted[0]:
-            if self.best_count >= 3:
-                self.best_count = 0
-                return next_population
-            self.best_count += 1
+        if current_best == parents_sorted[0] and self.best_count >= 3:
+            self.best_count = 0
+            return next_population
+        self.best_count += 1
         return parents_sorted[:old_ind_size] + next_population[:(self.population_size-old_ind_size)]
 
     def evolve(self):
@@ -138,7 +137,7 @@ class RandomChess:
                 parent2 = parents[i + 1] if i + 1 < len(parents) else parents[0]  # Wrap around for odd population size
                 child = self.crossover(parent1, parent2)
                 child = self.mutate(child)
-                next_population.extend([parent1, parent2, child])
+                next_population.extend([child, parent1, parent2])
 
             # Replace the old population with the new one using elitis
             self.population = self.elitis(parents, next_population)
