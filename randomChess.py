@@ -5,7 +5,7 @@ from copy import deepcopy
 import matplotlib.pyplot as plt
 
 class RandomChess:
-    def __init__(self, population_size, generations, mutation_rate):
+    def __init__(self, population_size, generations, mutation_rate, elitis_rate):
         self.population_size = population_size
         self.generations = generations
         self.mutation_rate = mutation_rate
@@ -13,18 +13,18 @@ class RandomChess:
         self.best_count = 0
         self.population = []
         self.all_evaluations = []
+        self.elitis_rate = elitis_rate
 
     def generate_individual(self):
         individual = deepcopy(self.optimality_criterion)
         random.shuffle(individual)
         return individual
     
-    # generate_inital_chromosomes
     def generate_population(self):
         self.population = [self.generate_individual() for _ in range(self.population_size)]
     
     def evaluate(self, individual): # OGRANICENJA
-        # Check if any piece is missing
+        # Provera da li neka figura fali
         piece_counts = {ROOK: 0, KNIGHT: 0, BISHOP: 0, QUEEN: 0, KING: 0}
         for piece in individual:
             piece_counts[piece] += 1
@@ -56,7 +56,6 @@ class RandomChess:
         return correct_pieces
 
     def select_parents(self):
-        # Tournament selection: Shuffle the population and iterate through pairs to select parents.
         selected_parents = []
 
         shuffled_population = random.sample(self.population, len(self.population))
@@ -71,15 +70,12 @@ class RandomChess:
         return selected_parents
 
     def crossover(self, parent1, parent2):
-        # Single-point crossover: Choose two random indices for two crossover points.
         crossover_point1 = random.randint(0, len(parent1) - 1)
         crossover_point2 = random.randint(0, len(parent1) - 1)
 
-        # Ensure crossover_point2 is different from crossover_point1
         while crossover_point2 == crossover_point1:
             crossover_point2 = random.randint(0, len(parent1) - 1)
 
-        # Ensure crossover_point1 is less than crossover_point2
         if crossover_point1 > crossover_point2:
             crossover_point1, crossover_point2 = crossover_point2, crossover_point1
 
@@ -101,14 +97,15 @@ class RandomChess:
 
         return mutated_children
     
-    def elitis(self, parents, next_population, elitis_rate = 0.1):
+    def elitis(self, parents, next_population):
         current_best = parents[0]
-        old_ind_size = round(self.population_size*elitis_rate)
+        old_ind_size = round(self.population_size*self.elitis_rate)
         parents_sorted = []
         for parent in parents:
             parents_sorted.append([parent, self.evaluate(parent)])
         parents_sorted = sorted(parents_sorted, key=lambda x: x[1], reverse=True)
         parents_sorted = [sublist[0] for sublist in parents_sorted]
+        # provera da li se elitna jedinka ponavlja vise od 3 generacije
         if current_best == parents_sorted[0] and self.best_count >= 3:
             self.best_count = 0
             return next_population
@@ -122,18 +119,15 @@ class RandomChess:
             parents = self.select_parents()
             next_population = []
 
-            # Create offspring through crossover and mutation
             for i in range(0, self.population_size, 2):
                 parent1 = parents[i]
-                parent2 = parents[i + 1] if i + 1 < len(parents) else parents[0]  # Wrap around for odd population size
+                parent2 = parents[i + 1] if i + 1 < len(parents) else parents[0]
                 children = self.crossover(parent1, parent2)
                 children = self.mutate(children)
                 next_population.extend([children[0], children[1]])
 
-            # Replace the old population with the new one using elitis
             self.population = self.elitis(parents, next_population)
 
-            # Optionally, you can keep track of the best individual in each generation
             best_individual = max(self.population, key=self.evaluate)
             evaluate_value = self.evaluate(best_individual)
             self.all_evaluations.append(evaluate_value)

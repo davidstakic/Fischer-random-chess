@@ -2,7 +2,6 @@ from constants import *
 from copy import deepcopy
 from colorama import Back, Style, init, Fore
 
-# Initialize colorama
 init(autoreset=True)
 
 def convert_to_black_chess_symbols(row):
@@ -50,10 +49,8 @@ def print_board(first_row):
             piece = board[i][j] + ' '
             if (i + j) % 2 == 0:
                 cell_color = Back.CYAN
-                # cell_color = Back.LIGHTYELLOW_EX
             else:
                 cell_color = Back.MAGENTA
-                # cell_color = Back.LIGHTGREEN_EX
 
             if piece != ' ':
                 if i == 0 or i == 1:
